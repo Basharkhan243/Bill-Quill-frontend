@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bill Quill | Professional Invoice Generator</title>
+  <link rel="stylesheet" href="output.css">
+  <link rel="shortcut icon" href="./images/logo.png" type="image/x-icon">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+
+  <style>
+    
+    :root{--primary-color:#1a1a1a;--secondary-color:#2d2d2d;--accent-color:#3b82f6;--text-color:#333333;--text-light:#6b7280;--border-color:#e5e7eb;--bg-light:#f9fafb;--success-color:#10b981;--danger-color:#ef4444;--warning-color:#f59e0b;--card-shadow:0 4px 6px rgba(0,0,0,0.05),0 1px 3px rgba(0,0,0,0.1)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;color:var(--text-color);background:linear-gradient(135deg,#f5f7fa 0%,#e4e7eb 100%);line-height:1.6;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:20px}
+    .app-container{max-width:1200px;width:100%;margin:0 auto;background:white;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.1);overflow:hidden}
+    .auth-container{max-width:440px;width:100%;margin:0 auto;background:white;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.1);padding:40px}
+    @media print{.no-print{display:none!important}body{margin:0;padding:0;background:white}.invoice-container{box-shadow:none;margin:0;padding:0;width:100%}}
+    .header{background:var(--bg-light);color:white;padding:20px 30px;display:flex;justify-content:space-between;align-items:center}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo-icon{font-size:24px;color:var(--accent-color)}
+    .logo-text{font-size:22px;font-weight:700}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 18px;border-radius:6px;font-weight:500;font-size:14px;cursor:pointer;transition:all 0.2s;border:none;font-family:'Inter',sans-serif}
+    .btn-primary{background-color:var(--primary-color);color:white}.btn-primary:hover{background-color:#141414}
+    .btn-secondary{background-color:var(--primary-color);color:white}.btn-secondary:hover{background-color:#141414}
+    .btn-danger{background-color:var(--danger-color);color:white}.btn-danger:hover{background-color:#dc2626}
+    .btn-outline{background-color:transparent;border:1px solid var(--border-color);color:var(--text-color)}.btn-outline:hover{background-color:var(--bg-light)}
+    .btn-sm{padding:6px 12px;font-size:13px}
+    .form-group{margin-bottom:20px}
+    .form-label{display:block;font-weight:500;margin-bottom:8px;color:var(--text-color);font-size:14px}
+    .form-input{width:100%;padding:12px 14px;border:1px solid var(--secondary-color);border-radius:6px;font-size:15px;transition:all 0.2s;font-family:'Inter',sans-serif; color: #000;}
+    .form-input:focus{outline:none;border-color:var(--accent-color);box-shadow:0 0 0 3px rgba(59,130,246,0.2)}
+    .form-input.error{border-color:var(--danger-color)}
+    .error-message{color:var(--danger-color);font-size:13px;margin-top:5px}
+    .tabs{display:flex;border-bottom:1px solid var(--border-color);background:white;padding:0 30px}
+    .tab{padding:16px 24px;cursor:pointer;border-bottom:2px solid transparent;font-weight:500;font-size:13px;color:var(--text-light);transition:all 0.2s}
+    .tab.active{border-bottom-color:var(--accent-color);color:var(--accent-color)}
+    .tab:hover{color:var(--accent-color)}
+    .tab-content{display:none;padding:30px}
+    .tab-content.active{display:block}
+    .content-container{background:var(--bg-light);min-height:500px}
+    .card{background:white;border-radius:8px;box-shadow:var(--card-shadow);padding:24px;margin-bottom:24px}
+    .card-title{font-size:18px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+    .invoice-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+    .invoice-table th,.invoice-table td{border:1px solid var(--border-color);padding:12px;text-align:left}
+    .invoice-table thead th{background-color:var(--bg-light);font-weight:600}
+    .invoice-table tfoot td{font-weight:600;background-color:var(--bg-light)}
+    .loading-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  flex-direction: column;
+}
+
+/* Logo animation (bulb effect zoom in/out) */
+.loading-logo {
+  width: 120px;
+  height: auto;
+  animation: bulbZoom 2s ease-in-out infinite;
+}
+
+.loading-text {
+  margin-top: 16px;
+  font-weight: 500;
+  color: var(--text-color, #333);
+}
+
+@keyframes bulbZoom {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+    .alert{padding:14px 16px;border-radius:6px;margin-bottom:20px;font-size:14px}
+    .alert-success{background-color:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+    .alert-error{background-color:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+    .alert-info{background-color:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
+    .auth-header{text-align:center;margin-bottom:30px}
+    .auth-title{font-size:24px;font-weight:700;margin-bottom:8px;color:var(--primary-color)}
+    .auth-subtitle{color:var(--text-light);font-size:14px}
+    .auth-switch{text-align:center;margin-top:24px;font-size:14px;color:var(--text-light)}
+    .auth-switch a{color:var(--accent-color);text-decoration:none;font-weight:500}
+    .auth-switch a:hover{text-decoration:underline}
+    .scroll-container{max-height:400px;overflow-y:auto;border:1px solid var(--border-color);border-radius:8px;padding:16px;background:white}
+    .scroll-container::-webkit-scrollbar{width:8px}
+    .scroll-container::-webkit-scrollbar-track{background:#f1f1f1;border-radius:4px}
+    .scroll-container::-webkit-scrollbar-thumb{background:#c5c5c5;border-radius:4px}
+    .scroll-container::-webkit-scrollbar-thumb:hover{background:#a8a8a8}
+    .item-row{display:grid;grid-template-columns:3fr 1fr 1.5fr 1.5fr 1.5fr 1fr;gap:12px;margin-bottom:12px;align-items:center}
+    .invoice-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border-color)}
+    .user-info{display:flex;align-items:center;gap:12px}
+    .avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-color);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px}
+    .invoice-template{font-family:Arial,sans-serif;width:210mm;min-height:297mm;padding:10mm;margin:0 auto;background:white;box-shadow:0 0 10px rgba(0,0,0,0.1);color:#000;font-size:12px;line-height:1.4}
+    .invoice-header{display:flex;justify-content:space-between;margin-bottom:15px;padding-bottom:15px;border-bottom:1px solid #ddd}
+    .invoice-title{font-size:20px;font-weight:bold;text-align:center;margin-bottom:15px}
+    .invoice-address{font-style:normal;margin-bottom:5px}
+    .invoice-details{width:100%;border-collapse:collapse;margin-bottom:15px}
+    .invoice-details td{padding:3px 5px;border:1px solid #ddd}
+    .invoice-details .label{font-weight:bold;background-color:#f5f5f5;width:25%}
+    .invoice-products{width:100%;border-collapse:collapse;margin-bottom:15px;page-break-inside:avoid}
+    .invoice-products th,.invoice-products td{padding:5px;border:1px solid #ddd;text-align:center}
+    .invoice-products th{background-color:#f5f5f5;font-weight:bold}
+    .invoice-summary{width:100%;border-collapse:collapse;margin-bottom:15px}
+    .invoice-summary td{padding:5px;border:1px solid #ddd}
+    .invoice-summary .label{font-weight:bold;background-color:#f5f5f5;width:70%}
+    .invoice-footer{margin-top:20px;padding-top:15px;border-top:1px solid #ddd;font-size:11px}
+    .invoice-footer p{margin-bottom:8px}
+    .invoice-signature{margin-top:40px;text-align:right}
+    @media (max-width:1024px){.item-row{grid-template-columns:1fr 1fr 1fr;gap:10px}}
+    @media (max-width:768px){body{padding:12px}.auth-container{padding:30px 24px}.app-container{border-radius:8px}.header{padding:16px 20px;flex-direction:column;gap:16px}.tabs{padding:0 16px;overflow-x:auto;white-space:nowrap}.tab{padding:14px 16px;font-size:13px}.tab-content{padding:20px}.item-row{grid-template-columns:1fr;gap:10px}.invoice-actions{flex-direction:column}.btn{width:100%;justify-content:center}.invoice-template{width:100%;padding:5mm;font-size:10px}}
+    @media (max-width:480px){.auth-container{padding:24px 16px}.logo-text{font-size:18px}.tab{padding:12px 14px}.card{padding:20px 16px}}
+    .no-products-placeholder{text-align:center;padding:20px;color:var(--text-light);font-style:italic}
+    
+  </style>
+  
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+  <img src="./images/logo.png" alt="App Logo" class="loading-logo" width:"50px" />
+  <div class="loading-text"><b>Initialising Please Wait...</b></div>
+</div>
+<script>
+   window.addEventListener("load", () => {
+    setTimeout(() => {
+      document.getElementById("loadingOverlay").style.display = "none";
+    }, 5000); 
+  });
+</script>
+
+  
+
+  <!-- Alert Container -->
+  <div class="flex  justify-center h-18"><div id="alertContainer" class="flex justify-center  w-150"></div></div>
+
+  <!-- Login Section -->
+  <div id="loginSection" class="auth-container">
+    <div class="auth-header justify-center items-center">
+      <div class="logo flex flex-col" style="justify-content: center;">
+        <img src="./images/logo.png" alt="logo" width="110px"> 
+      </div>
+      <p class="auth-subtitle">Professional Invoice Generator</p>
+    </div>
+    <h2 class="auth-title">Login to Your Account</h2>
+    <form id="loginForm" class="space-y-4">
+      <div class="form-group">
+        <label for="loginEmail" class="form-label">Email Address</label>
+        <input type="email" id="loginEmail" class="form-input" placeholder="Enter your email" required>
+      </div>
+      <div class="form-group">
+        <label for="loginPassword" class="form-label">Password</label>
+        <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required>
+      </div>
+      <button type="submit" class="btn btn-primary w-full">
+        <i class="fas fa-sign-in-alt mr-2"></i> &nbsp; Login to Account
+      </button>
+    </form>
+    <div class="auth-switch">
+      Don't have an account? <a href="#" id="showRegister">Register now</a>
+    </div>
+  </div>
+
+  <!-- Register Section -->
+  <div id="registerSection" class="auth-container" style="display: none;">
+    <div class="auth-header">
+      <div class="logo" style="justify-content: center;">
+        <img src="./images/logo.png" alt="logo" width="110px"> 
+        
+      </div>
+      <p class="auth-subtitle">Create your account</p>
+    </div>
+    <h2 class="auth-title">Register New Account</h2>
+    <form id="registerForm" class="space-y-4">
+      <div class="form-group">
+        <label for="registerBusinessName" class="form-label">Business Name</label>
+        <input type="text" id="registerBusinessName" class="form-input" placeholder="Your business name" required>
+      </div>
+      <div class="form-group">
+        <label for="registerEmail" class="form-label">Email Address</label>
+        <input type="email" id="registerEmail" class="form-input" placeholder="Your email address" required>
+      </div>
+      <div class="form-group">
+        <label for="registerPassword" class="form-label">Password</label>
+        <input type="password" id="registerPassword" class="form-input" placeholder="Create a password" required minlength="6">
+      </div>
+      <div class="form-group">
+        <label for="registerConfirmPassword" class="form-label">Confirm Password</label>
+        <input type="password" id="registerConfirmPassword" class="form-input" placeholder="Confirm your password" required>
+      </div>
+      <button type="submit" class="btn btn-primary w-full">
+        <i class="fas fa-user-plus mr-2"></i> &nbsp; Create Account
+      </button>
+    </form>
+    <div class="auth-switch">
+      Already have an account? <a href="#" id="showLogin">Login here</a>
+    </div>
+  </div>
+
+  <!-- Main Application (hidden until logged in) -->
+  <div id="mainApp" class="app-container" style="display: none;">
+    <header class="header">
+      <div class="logo">
+        <img src="./images/logo.png" alt="logo" width="90px"> 
+      </div>
+      <div class="user-info flex">
+        <div class="avatar" id="userAvatar">AB</div>
+        <div class="flex">
+          <div id="userBusinessName" class="text-xl text-black">Business Name</div>
+          <button id="logoutBtn" class="btn btn-outline btn-sm" style=" color:#ff0000;">
+            <i class="fas fa-sign-out-alt mr-1"></i> &nbsp; Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs no-print">
+      <div class="tab active" data-tab="customer">
+        <i class="fas fa-users mr-2"></i> Customers
+      </div>
+      <div class="tab" data-tab="invoice">
+        <i class="fas fa-file-invoice-dollar mr-2"></i> Invoices
+      </div>
+    </div>
+
+    <div class="content-container">
+      <!-- Customer Management Section -->
+      <div id="customerTab" class="tab-content active">
+        <div class="card">
+          <h2 class="card-title">
+            <i class="fas fa-users text-blue-500"></i> Customer Management
+          </h2>
+
+          <form id="customerForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="form-group">
+              <label for="customerName" class="form-label">Customer Name *</label>
+              <input type="text" id="customerName" class="form-input"  placeholder="Enter customer name here..." required>
+            </div>
+            <div class="form-group">
+              <label for="customerId" class="form-label">Customer ID *</label>
+              <input type="text" id="customerId" class="form-input"  required>
+            </div>
+            <div class="form-group md:col-span-2">
+              <label for="customerAddress" class="form-label">Address</label>
+              <textarea id="customerAddress" class="form-input" rows="2" placeholder="Enter address here..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="customerPhone" class="form-label">Phone Number</label>
+              <input type="text" id="customerPhone" class="form-input" placeholder="Enter phone number here..." >
+            </div>
+            <div class="form-group">
+              <label for="customerGSTIN" class="form-label">GSTIN (if available)</label>
+              <input type="text" id="customerGSTIN" class="form-input" placeholder="Enter GSTIN here...">
+            </div>
+            <div class="form-group md:col-span-2 flex justify-end space-x-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-2"></i> &nbsp; Save Customer
+              </button>
+              <button type="button" id="clearCustomerForm" class="btn btn-outline">
+                <i class="fas fa-times mr-2"></i> &nbsp; Clear
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">
+            <i class="fas fa-list text-blue-500"></i> Customer List
+          </h3>
+          <div class="scroll-container">
+            <table class="invoice-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>GSTIN</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="customersList">
+                <tr>
+                  <td colspan="5" style="text-align:center;padding:20px;">No customers found. Add your first customer above.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top: 20px; text-align: right;">
+    <button id="exportCustomerProducts" class="btn btn-success">
+      <i class="fas fa-file-excel mr-2 text-2xl "></i>&nbsp; Export Customers with Products
+    </button>
+  </div>
+        </div>
+      </div>
+
+      <!-- Invoice Generation Section -->
+<div id="invoiceTab" class="tab-content">
+  <div class="card">
+    <h2 class="card-title">
+      <i class="fas fa-file-invoice-dollar text-blue-500"></i> Create New Invoice
+    </h2>
+
+    <form id="invoiceForm" class="mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div class="form-group">
+          <label for="selectCustomer" class="form-label">Select Customer *</label>
+          <select id="selectCustomer" class="form-input" required>
+            <option value="">-- Select Customer --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="invoiceDate" class="form-label">Invoice Date *</label>
+          <input type="date" id="invoiceDate" class="form-input" required>
+        </div>
+      </div>
+
+      <!-- Predefined Products Section -->
+      <div class="form-group">
+        <label class="form-label">Select Products</label>
+        <div class="flex gap-4 w-230 h-13 ">
+          <select id="predefinedProducts" class="form-input">
+            <option value="">-- Select Product --</option>
+          </select>
+          <button type="button" id="addPredefinedProduct" class="btn btn-primary w-50 ">
+            <i class="fas fa-plus mr-2"></i> &nbsp; Add Product
+          </button>
+        </div>
+      </div>
+
+      <h3 class="form-label">Invoice Items *</h3>
+      <div class="scroll-container">
+        <div id="itemsContainer"></div>
+      </div>
+
+      <div class="mt-3 mb-4">
+        <button type="button" id="addItem" class="btn btn-outline">
+          <i class="fas fa-plus mr-2"></i> Add Custom Item
+        </button>
+      </div>
+
+      <div class="invoice-actions no-print">
+        <button type="button" id="previewInvoice" class="btn btn-secondary">
+          <i class="fas fa-eye mr-2"></i> &nbsp; Preview
+        </button>
+        <button type="reset" class="btn btn-outline ">Reset</button>
+      </div>
+    </form>
+  </div>
+  <div id="invoicePreview" class="card">
+          <h2 class="card-title">
+            <i class="fas fa-eye text-blue-500"></i> Invoice Preview
+          </h2>
+          <div style="text-align:center;padding:30px;color:var(--text-light);">
+            <i class="fas fa-receipt" style="font-size:48px;margin-bottom:16px;"></i>
+            <p>Your invoice preview will appear here after generation</p>
+          </div>
+  </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden container for invoice template -->
+  <div id="invoiceTemplateContainer" style="display:none;">
+    <div id="invoiceTemplate" class="invoice-template">
+      <!-- (Kept your full invoice template content; we will populate the fields dynamically) -->
+      <div class="invoice-header">
+        <div>
+          <div style="font-weight:bold;font-size:16px;">KIRAN ENTERPRISES</div>
+          <div class="invoice-address">C/O-VIJAY PRASAD GUPTA, OPP. DR. VINITA SINGH</div>
+          <div class="invoice-address">KIRAN VIJAY VILLA, MATHURA PRASAD SINHA ROAD</div>
+          <div class="invoice-address">KADAMKUAN, PATNA-800003</div>
+          <div class="invoice-address">Phone: 104124518745</div>
+        </div>
+        <div style="text-align:right;">
+          <div>D.L.No.: BR-PAT-18886061</div>
+          <div>GSTN: 10CMPR8464L7Y</div>
+        </div>
+      </div>
+
+      <div class="invoice-title">TAX INVOICE</div>
+
+      <table class="invoice-details">
+        <tr>
+          <td class="label">Invoice No.</td>
+          <td id="inv-number">INV-001</td>
+          <td class="label">Date</td>
+          <td id="inv-date">01-Nov-2023</td>
+        </tr>
+        <tr>
+          <td class="label">Customer Name</td>
+          <td id="inv-customer">DR. SANJAY KUMAR</td>
+          <td class="label">GSTIN</td>
+          <td id="inv-gstin">10ABCDE1234F1Z5</td>
+        </tr>
+      </table>
+
+      <table class="invoice-products">
+        <thead>
+          <tr>
+            <th>S</th>
+            <th>Qty.</th>
+            <th>Product Name</th>
+            <th>Rate</th>
+            <th>GST %</th>
+            <th>GST Amt</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody id="inv-products"></tbody>
+      </table>
+
+      <table class="invoice-summary">
+        <tr>
+          <td class="label">Total Amount</td>
+          <td colspan="9"></td>
+          <td id="inv-grand-total">₹0.00</td>
+        </tr>
+      </table>
+
+      <div class="invoice-footer">
+        <p>Amount in Words: <span id="inv-amount-words">Zero Rupees Only</span></p>
+        <p>Bank Details: Bank of India, A/C No. 662310110003336, IFSC: BKID0006623, Branch: Kadamkuan, Patna</p>
+        <p>Note: Subject to Patna Jurisdiction. E. & O.E.</p>
+
+        <div class="invoice-signature">
+          <div>For KIRAN ENTERPRISES</div>
+          <div style="margin-top:40px;">Authorized Signatory</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+// ---------- CONFIG ----------
+const API_BASE = window.API_BASE_URL || "https://bill-quill-l12m.onrender.com/api/v1";
+
+// ---------- STATE ----------
+let currentUser = null;
+let customers = [];
+let customerProducts = [];
+const predefinedProducts = [
+  { name: "KNEE IMMOBILIZER 22\"S LWF27", price: 1550 }, { name: "KNEE IMMOBILIZER 22\"M LWF27", price: 1550 },
+  { name: "KNEE IMMOBILIZER 22\"L LWF27", price: 1550},{ name: "LUMBO SACRAL BELT S LWA21" , price: 1125 }, 
+  { name: "LUMBO SACRAL BELT L LWA21" , price: 1125 }, { name: "LUMBO SACRAL BELT XL LWA21" , price: 1125 },
+  { name: "TENNIS ELBOW BRACE UNIV LWG14", price: 290 }, { name: "CLAVICLE BRACE M LWC04", price: 550 },
+  { name: "CLAVICLE BRACE L LWC04", price: 550 }, { name: "KNEE CAP L LWF01", price: 450 },
+  { name: "ANKLE BINDER M LWD11", price: 305 }, { name: "ANKLE BINDER L LWD11", price: 305 },
+  { name: "RIB BELT M LWA08", price: 720 }, { name: "RIB BELT L LWA08", price: 720 },
+  { name: "WRIST BR W THUM STAB UN LWG08", price: 740 }, { name: "COCCYX CUSHION UNI LWJ05 (1)", price: 2200 },
+  { name: "FOREARM BRACE UNI LWG01", price: 750 }
+
+];
+
+// ---------- UTILITIES ----------
+const utils = {
+   showLoading() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.style.display = 'flex';
+},
+   hideLoading() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.style.display = 'none';
+},
+  showAlert(msg, type='info') {
+    const container = document.getElementById('alertContainer'); if(!container) return;
+    const alert = document.createElement('div');
+    alert.className = `alert ${type==='success'?'alert-success':type==='error'?'alert-error':'alert-info'}`;
+    alert.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;">
+      <span>${msg}</span>
+      <button type="button" style="background:none;border:none;cursor:pointer;margin-left:12px" onclick="this.closest('.alert').remove()"><i class="fas fa-times"></i></button>
+    </div>`;
+    container.appendChild(alert);
+    setTimeout(()=>alert.remove(),5000);
+  },
+  formatCurrency(x){ return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'}).format(x||0); },
+  numberOrZero(x){ return isNaN(parseFloat(x))?0:parseFloat(x); },
+  sanitizeInput(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+};
+
+// ---------- AUTH HELPERS ----------
+const getToken = () => localStorage.getItem('authToken');
+const setToken = t => t ? localStorage.setItem('authToken', t) : localStorage.removeItem('authToken');
+const getAuthHeaders = () => getToken() ? {Authorization:`Bearer ${getToken()}`} : {};
+
+// ---------- INIT APP ----------
+document.addEventListener('DOMContentLoaded', initApp);
+async function initApp() {
+  setDefaultDates();
+  setupEventListeners();
+  populatePredefinedProducts();
+  await checkAuthStatus();
+}
+
+// ---------- EVENT LISTENERS ----------
+function setupEventListeners(){
+  const loginForm=document.getElementById('loginForm'); if(loginForm) loginForm.addEventListener('submit',handleLogin);
+  const registerForm=document.getElementById('registerForm'); if(registerForm) registerForm.addEventListener('submit',handleRegister);
+  document.getElementById('showRegister')?.addEventListener('click',e=>{e.preventDefault(); showRegisterForm();});
+  document.getElementById('showLogin')?.addEventListener('click',e=>{e.preventDefault(); showLoginForm();});
+  document.getElementById('logoutBtn')?.addEventListener('click',logout);
+  document.getElementById('customerForm')?.addEventListener('submit',handleCustomerSubmit);
+  document.getElementById('clearCustomerForm')?.addEventListener('click',()=>document.getElementById('customerForm').reset());
+  document.getElementById('invoiceForm')?.addEventListener('submit',handleInvoiceSubmit);
+  document.getElementById('addItem')?.addEventListener('click',addItemRow);
+  document.getElementById('previewInvoice')?.addEventListener('click',previewInvoice);
+  document.getElementById('addPredefinedProduct')?.addEventListener('click',addPredefinedProductToInvoice);
+  document.getElementById('generateSalesReport')?.addEventListener('click',generateSalesReport);
+  document.getElementById('exportSalesReport')?.addEventListener('click',exportSalesReport);
+  document.getElementById('exportCustomerProducts')?.addEventListener('click', exportCustomerProductsExcel);
+
+  // Tab switching
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(tc=>tc.classList.remove('active'));
+      tab.classList.add('active');
+      const tabName=tab.getAttribute('data-tab');
+      if(tabName==='customer') document.getElementById('customerTab')?.classList.add('active');
+      if(tabName==='invoice') document.getElementById('invoiceTab')?.classList.add('active');
+      if(tabName==='sales') document.getElementById('salesTab')?.classList.add('active');
+    });
+  });
+
+
+
+
+  // Customer selection change - load customer products
+  document.getElementById('selectCustomer')?.addEventListener('change',async function(){
+    const customerId=this.value;
+    if(customerId){
+      await loadCustomerProducts(customerId);
+    } else {
+      document.getElementById('customerProductsCard').style.display = 'none';
+    }
+  });
+}
+
+// ---------- AUTH FUNCTIONS ----------
+async function checkAuthStatus(){
+  const token=getToken(); if(!token) return showLoginForm();
+  try{
+    utils.showLoading();
+    const res=await fetch(`${API_BASE}/users/profile`,{headers:getAuthHeaders()});
+    if(res.ok){
+      const data=await res.json();
+      currentUser=data.user||data;
+      showMainApp();
+      await loadCustomers();
+      populateCustomerDropdown();
+    } else { setToken(null); showLoginForm(); }
+  } catch(err){ console.error(err); setToken(null); showLoginForm(); }
+  finally{ utils.hideLoading(); }
+}
+
+async function handleLogin(e){
+  e.preventDefault();
+  const email=document.getElementById('loginEmail').value;
+  const password=document.getElementById('loginPassword').value;
+  try{
+    utils.showLoading();
+    const res=await fetch(`${API_BASE}/users/login`,{
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password})
+    });
+    const result=await res.json();
+    if(res.ok){ setToken(result.data.accessToken); currentUser=result.data.user; showMainApp(); await loadCustomers(); populateCustomerDropdown(); utils.showAlert('Login successful','success'); }
+    else utils.showAlert(result.message||'Login failed','error');
+  } catch(err){ console.error(err); utils.showAlert('Network error','error'); }
+  finally{ utils.hideLoading(); }
+}
+
+async function handleRegister(e){
+  e.preventDefault();
+  const businessName = document.getElementById('registerBusinessName').value;
+  const email = document.getElementById('registerEmail').value;
+  const password = document.getElementById('registerPassword').value;
+  const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+  if(password !== confirmPassword){
+    utils.showAlert('Passwords do not match','error');
+    return;
+  }
+
+  try{
+    utils.showLoading();
+    const res = await fetch(`${API_BASE}/users/register`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name: businessName,  // ✅ backend expects "name"
+        email,
+        password
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+  utils.showAlert('Registration successful! Please login.', 'success');
+  
+  // Clear any token just in case
+  setToken(null);
+  currentUser = null;
+
+  // Show login form again
+  showLoginForm();   // <-- replace with your login page function
+} else {
+  utils.showAlert(data.message || 'Registration failed', 'error');
+}
+  } catch(err){
+    console.error(err);
+    utils.showAlert('Network error','error');
+  } finally {
+    utils.hideLoading();
+  }
+}
+
+
+async function logout(){
+  try{
+    utils.showLoading();
+    try{ await fetch(`${API_BASE}/users/logout`,{method:'POST',headers:getAuthHeaders()}); } catch(err){console.warn(err);}
+    setToken(null); currentUser=null; showLoginForm(); utils.showAlert('Logged out successfully','info');
+  } finally{ utils.hideLoading(); }
+}
+
+function showLoginForm(){ document.getElementById('loginSection').style.display='block'; document.getElementById('registerSection').style.display='none'; document.getElementById('mainApp').style.display='none'; }
+function showRegisterForm(){ document.getElementById('loginSection').style.display='none'; document.getElementById('registerSection').style.display='block'; document.getElementById('mainApp').style.display='none'; }
+function showMainApp(){
+  document.getElementById('loginSection').style.display='none';
+  document.getElementById('registerSection').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  if(currentUser){
+    document.getElementById('userBusinessName').textContent=currentUser.businessName||currentUser.name||'';
+    document.getElementById('userAvatar').textContent=(currentUser.businessName||currentUser.name||'').substring(0,2).toUpperCase();
+  }
+}
+
+// ---------- CUSTOMER FUNCTIONS ----------
+async function loadCustomers(page = 1, search = '') {
+  try {
+    utils.showLoading();
+    const res = await fetch(`${API_BASE}/customers?page=${page}&search=${encodeURIComponent(search)}`, {
+      headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || `Failed to load customers (HTTP ${res.status})`);
+    }
+    
+    const result = await res.json();
+    
+    // Extract customers based on the actual API response structure
+    if (result.data && Array.isArray(result.data.customers)) {
+      customers = result.data.customers;
+    } else if (result.data && Array.isArray(result.data)) {
+      customers = result.data;
+    } else if (Array.isArray(result.data.items)) {
+      customers = result.data.items;
+    } else if (Array.isArray(result.data.docs)) {
+      customers = result.data.docs;
+    } else if (Array.isArray(result.data)) {
+      customers = result.data;
+    } else {
+      // If we can't find the array, check all properties of result.data
+      customers = [];
+      for (const key in result.data) {
+        if (Array.isArray(result.data[key])) {
+          customers = result.data[key];
+          break;
+        }
+      }
+    }
+    
+    renderCustomersList(customers);
+    populateCustomerDropdown(customers);
+    
+  } catch (err) {
+    console.error('Error loading customers:', err);
+    utils.showAlert(err.message, 'error');
+  } finally {
+    utils.hideLoading();
+  }
+}
+
+
+function renderCustomersList(customers){
+  const tableBody=document.getElementById("customersList");
+  if(!tableBody) return;
+  tableBody.innerHTML='';
+  if(customers.length===0){ tableBody.innerHTML='<tr><td colspan="6" class="text-center">No customers found</td></tr>'; return; }
+  customers.forEach(c=>{
+    const row=document.createElement('tr');
+    row.innerHTML=`<td>${c.customerId||''}</td><td>${c.name}</td><td>${c.email||''}</td><td>${c.phone||''}</td><td>${c.gstin||''}</td>
+    <td class="flex justify-center gap-3 m-0 w-50" ><button class="bg-black px-5 py-8 w-15 rounded-sm text-amber-50" onclick="editCustomer('${c._id}')">Edit</button> &nbsp; &nbsp;<button class="bg-[#ff0000] px-5 py-8 w-15 rounded-sm text-amber-50" onclick="deleteCustomer('${c._id}')">Delete</button></td>`;
+    tableBody.appendChild(row);
+  });
+}
+
+async function handleCustomerSubmit(e) {
+  e.preventDefault();
+  const customerData = {
+    name: document.getElementById('customerName').value,
+    customerId: document.getElementById('customerId').value,
+    address: document.getElementById('customerAddress').value,
+    phone: document.getElementById('customerPhone').value,
+    gstin: document.getElementById('customerGSTIN').value
+  };
+  
+  try {
+    utils.showLoading();
+    const res = await fetch(`${API_BASE}/customers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify(customerData)
+    });
+    
+    if (res.ok) {
+      const responseData = await res.json();
+      await loadCustomers();
+      populateCustomerDropdown();
+      document.getElementById('customerForm').reset();
+      utils.showAlert('Customer saved successfully', 'success');
+    } else {
+      const err = await res.json();
+      utils.showAlert(err.message || 'Failed to save customer', 'error');
+    }
+  } catch (err) {
+    console.error('Network error:', err);
+    utils.showAlert('Network error', 'error');
+  } finally {
+    utils.hideLoading();
+  }
+}
+
+function editCustomer(customerId){
+  const customer=customers.find(c=>c._id===customerId); if(!customer) return;
+  document.getElementById('customerName').value=customer.name;
+  document.getElementById('customerId').value=customer.customerId;
+  document.getElementById('customerAddress').value=customer.address||'';
+  document.getElementById('customerPhone').value=customer.phone||'';
+  document.getElementById('customerGSTIN').value=customer.gstin||'';
+  document.getElementById('customerForm').scrollIntoView({behavior:'smooth'});
+}
+
+async function deleteCustomer(customerId){
+  if(!confirm('Are you sure you want to delete this customer?')) return;
+  try{
+    utils.showLoading();
+    const res=await fetch(`${API_BASE}/customers/${customerId}`,{method:'DELETE',headers:getAuthHeaders()});
+    if(res.ok){ await loadCustomers(); populateCustomerDropdown(); utils.showAlert('Customer deleted successfully','success'); }
+    else { const err=await res.json(); utils.showAlert(err.message||'Failed to delete customer','error'); }
+  } catch(err){ console.error(err); utils.showAlert('Network error','error'); }
+  finally{ utils.hideLoading(); }
+}
+
+function populateCustomerDropdown(customersArray=customers){
+  const dropdown=document.getElementById("selectCustomer"); if(!dropdown) return;
+  dropdown.innerHTML='<option value="">-- Select Customer --</option>';
+  customersArray.forEach(c=>{ const opt=document.createElement('option'); opt.value=c._id; opt.textContent=c.name; dropdown.appendChild(opt); });
+}
+
+// ---------- CUSTOMER PRODUCTS FUNCTIONS ----------
+
+async function loadCustomerProducts(customerId) {
+  try {
+    utils.showLoading();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/products`, {
+      headers: getAuthHeaders()
+    });
+    
+    if (!res.ok) throw new Error(`Failed to load customer products (HTTP ${res.status})`);
+    console.log("data fetched succesfully")
+    const result = await res.json();
+    
+    // Check if the response has the expected structure
+    if (result.data && Array.isArray(result.data.data)) {
+      customerProducts = result.data.data; // ApiResponse structure
+    } else if (Array.isArray(result.data)) {
+      customerProducts = result.data; // Direct array
+    } else {
+      customerProducts = []; // Fallback
+    }
+    
+    renderCustomerProducts(customerId, customerProducts);
+    
+  } catch (err) {
+    console.error('Error loading customer products:', err);
+    customerProducts = [];
+    renderCustomerProducts(customerId, customerProducts);
+    utils.showAlert('Failed to load customer products', 'error');
+  } finally {
+    utils.hideLoading();
+  }
+}
+
+function renderCustomerProducts(customerId, products) {
+  const container = document.getElementById('itemsContainer');
+  if (!container) return;
+
+  container.innerHTML = ''; // clear previous invoice items
+  
+  if (!products.length) {
+    utils.showAlert('No products found for this customer', 'info');
+    // Add one empty row so user can still create an invoice
+    addItemRow();
+    return;
+  }
+
+  // Add each product as an invoice item row
+  products.forEach(product => {
+    const newRow = document.createElement('div');
+    newRow.className = 'item-row';
+    newRow.innerHTML = `
+      <div><input type="text" placeholder="Product Description *" class="form-input item-desc" value="${utils.sanitizeInput(product.name)}" required></div>
+      <div><input type="number" placeholder="Qty *" min="1" class="form-input item-qty" value="${product.quantity || 1}" required></div>
+      <div><input type="number" placeholder="Rate *" step="0.01" min="0" class="form-input item-rate" value="${product.price || 0}" required></div>
+      <div>
+        <select class="form-input item-gst" required>
+          <option value="0">0% GST</option>
+          <option value="5">5% GST</option>
+          <option value="12">12% GST</option>
+          <option value="18" selected>18% GST</option>
+          <option value="28">28% GST</option>
+        </select>
+      </div>
+      <div><input type="text" placeholder="Amount" readonly class="form-input item-amount" value="0"></div>
+      <div><button type="button" class="btn btn-danger remove-item w-full">×</button></div>
+    `;
+    
+    // SET THE PRODUCT ID ON THE ROW - THIS IS CRITICAL
+    if (product._id) {
+      newRow.dataset.productId = product._id;
+    }
+    
+    container.appendChild(newRow);
+    setupItemRowEventListeners(newRow);
+    calculateItemAmount(newRow);
+  });
+
+  calculateInvoiceTotals();
+  utils.showAlert(`Loaded ${products.length} products into invoice`, 'success');
+}
+
+function addCustomerProductToInvoice(product) {
+  addItemRow();
+  const rows = document.querySelectorAll('.item-row');
+  const newRow = rows[rows.length - 1];
+  newRow.querySelector('.item-desc').value = product.name;
+  newRow.querySelector('.item-rate').value = product.price;
+  newRow.querySelector('.item-qty').value = 1;
+  
+  // Only set the product ID if it's different from customer ID
+  if (product._id) {
+    newRow.dataset.productId = product._id;
+  }
+  
+  calculateItemAmount(newRow);
+  calculateInvoiceTotals();
+}
+
+async function deleteCustomerProduct(customerId, productId, rowElement) {
+  if (!confirm('Are you sure you want to delete this product?')) return;
+
+  try {
+    console.log("Deleting product:", { customerId, productId });
+
+    const url = `${API_BASE}/customers/${customerId}/products/${productId}`;
+    console.log("DELETE URL:", url);
+
+    utils.showLoading();
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+
+    const data = await res.json();
+    console.log("Response status:", res.status);
+    console.log("Response data:", data);
+
+    if (res.ok) {
+      if (rowElement) rowElement.remove();
+      customerProducts = customerProducts.filter(p => p._id !== productId);
+
+      const invoiceRow = document.querySelector(`.item-row[data-product-id="${productId}"]`);
+      if (invoiceRow) {
+        invoiceRow.remove();
+        calculateInvoiceTotals();
+      }
+
+      utils.showAlert('Product deleted successfully', 'success');
+
+      const container = document.getElementById('customerProductsContainer');
+      if (customerProducts.length === 0 && container) {
+        container.innerHTML = `
+          <div class="no-products-placeholder">
+            <i class="fas fa-box-open" style="font-size:24px;margin-bottom:10px;"></i>
+            <p>This customer has no saved products yet.</p>
+          </div>
+        `;
+      }
+
+    } else {
+      utils.showAlert(data.message || 'Failed to delete product', 'error');
+    }
+
+  } catch (err) {
+    console.error('Error deleting product:', err);
+    utils.showAlert('Network error while deleting product', 'error');
+  } finally {
+    utils.hideLoading();
+  }
+}
+
+
+
+// ---------- INVOICE FUNCTIONS ----------
+function setupItemRowEventListeners(row) {
+  const removeBtn = row.querySelector('.remove-item');
+  
+  // Add event listeners for quantity, rate, and GST changes
+  row.querySelector('.item-qty').addEventListener('input', () => {
+    calculateItemAmount(row);
+    calculateInvoiceTotals();
+  });
+  
+  row.querySelector('.item-rate').addEventListener('input', () => {
+    calculateItemAmount(row);
+    calculateInvoiceTotals();
+  });
+  
+  row.querySelector('.item-gst').addEventListener('change', () => {
+    calculateItemAmount(row);
+    calculateInvoiceTotals();
+  });
+  
+  // Remove item functionality - FIXED VERSION
+  removeBtn.addEventListener('click', async function () {
+    const productId = row.dataset.productId;
+    const customerId = document.getElementById('selectCustomer').value;
+    
+    console.log('Deleting product:', {productId, customerId});
+    
+    // Check if it's a temporary ID (starts with "temp_") or no product ID
+    const isTemporaryId = productId && productId.startsWith('temp_');
+    const hasNoProductId = !productId;
+    
+    // Only try to delete from database if we have valid IDs and it's not a temporary ID
+    if (productId && customerId && !isTemporaryId && !hasNoProductId) {
+      if (!confirm('Are you sure you want to delete this product from the customer?')) return;
+
+      try {
+        utils.showLoading();
+        const res = await fetch(`${API_BASE}/customers/${customerId}/products/${productId}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+        
+        if (res.ok) {
+          utils.showAlert('Product deleted from database', 'success');
+          
+          // Remove from local array
+          customerProducts = customerProducts.filter(p => p._id !== productId);
+        } else {
+          const errorData = await res.json();
+          console.error('Delete error:', errorData);
+          utils.showAlert(errorData.message || 'Failed to delete product from database', 'error');
+        }
+      } catch (err) {
+        console.error('Error deleting product:', err);
+        utils.showAlert('Network error while deleting product', 'error');
+      } finally {
+        utils.hideLoading();
+      }
+    }
+    
+    // Always remove the row from UI
+    row.remove();
+    calculateInvoiceTotals();
+  });
+}
+
+
+
+function calculateItemAmount(row) {
+  const qty = utils.numberOrZero(row.querySelector('.item-qty').value);
+  const rate = utils.numberOrZero(row.querySelector('.item-rate').value);
+  const gstPercent = utils.numberOrZero(row.querySelector('.item-gst').value);
+
+  const amountBeforeTax = qty * rate;
+  const gstAmount = amountBeforeTax * (gstPercent / 100);
+  const totalAmount = amountBeforeTax + gstAmount;
+
+  const amountField = row.querySelector('.item-amount');
+  if (amountField) amountField.value = totalAmount.toFixed(2);
+}
+
+function calculateInvoiceTotals() {
+  let subtotal = 0;
+  let totalGst = 0;
+  let grandTotal = 0;
+
+  document.querySelectorAll('.item-row').forEach(row => {
+    const qty = utils.numberOrZero(row.querySelector('.item-qty').value);
+    const rate = utils.numberOrZero(row.querySelector('.item-rate').value);
+    const gstPercent = utils.numberOrZero(row.querySelector('.item-gst').value);
+
+    const amountBeforeTax = qty * rate;
+    const gstAmount = amountBeforeTax * (gstPercent / 100);
+    const totalAmount = amountBeforeTax + gstAmount;
+
+    subtotal += amountBeforeTax;
+    totalGst += gstAmount;
+    grandTotal += totalAmount;
+  });
+
+  // Optionally update UI elements if present
+  const subtotalEl = document.getElementById('inv-subtotal');
+  const gstEl = document.getElementById('inv-gst');
+  const grandEl = document.getElementById('inv-grand-total');
+  if (subtotalEl) subtotalEl.textContent = utils.formatCurrency(subtotal);
+  if (gstEl) gstEl.textContent = utils.formatCurrency(totalGst);
+  if (grandEl) grandEl.textContent = utils.formatCurrency(grandTotal);
+
+  return { subtotal, totalGst, grandTotal };
+}
+
+function addItemRow() {
+  const itemsContainer = document.getElementById('itemsContainer');
+  const newRow = document.createElement('div');
+  newRow.className = 'item-row';
+  newRow.innerHTML = `
+    <div><input type="text" placeholder="Product Description *" class="form-input item-desc" required></div>
+    <div><input type="number" placeholder="Qty *" min="1" class="form-input item-qty" required></div>
+    <div><input type="number" placeholder="Rate *" step="0.01" min="0" class="form-input item-rate" required></div>
+    <div>
+      <select class="form-input item-gst" required>
+        <option value="0">0% GST</option>
+        <option value="5">5% GST</option>
+        <option value="12">12% GST</option>
+        <option value="18" selected>18% GST</option>
+        <option value="28">28% GST</option>
+      </select>
+    </div>
+    <div><input type="text" placeholder="Amount" readonly class="form-input item-amount" value="0"></div>
+    <div><button type="button" class="btn btn-danger remove-item w-full">×</button></div>
+  `;
+  itemsContainer.appendChild(newRow);
+  setupItemRowEventListeners(newRow);
+  calculateItemAmount(newRow);
+  calculateInvoiceTotals();
+}
+
+
+
+function populatePredefinedProducts() {
+  const select = document.getElementById('predefinedProducts');
+  if (!select) return;
+  select.innerHTML = '<option value="">-- Select Product --</option>';
+
+  predefinedProducts.forEach((product, index) => {
+    const option = document.createElement('option');
+    option.value = String(index);
+    option.textContent = `${product.name} - ${utils.formatCurrency(product.price)}`;
+    select.appendChild(option);
+  });
+}
+
+async function addPredefinedProductToInvoice() {
+  const select = document.getElementById('predefinedProducts');
+  if (!select) return;
+
+  const selectedIndex = select.value;
+  const customerId = document.getElementById('selectCustomer').value;
+
+  if (!selectedIndex) {
+    utils.showAlert('Please select a product first', 'error');
+    return;
+  }
+  if (!customerId) {
+    utils.showAlert('Please select a customer first', 'error');
+    return;
+  }
+
+  const product = predefinedProducts[parseInt(selectedIndex, 10)];
+  if (!product) {
+    utils.showAlert('Product not found', 'error');
+    return;
+  }
+
+  // Add product row to invoice UI
+  addItemRow();
+  const rows = document.querySelectorAll('.item-row');
+  const newRow = rows[rows.length - 1];
+  newRow.querySelector('.item-desc').value = product.name;
+  newRow.querySelector('.item-rate').value = product.price;
+  newRow.querySelector('.item-qty').value = 1;
+  calculateItemAmount(newRow);
+  calculateInvoiceTotals();
+  select.value = '';
+
+  //  Save product to customer's products array in DB
+  try {
+    utils.showLoading();
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/products`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ 
+        name: product.name, 
+        price: parseFloat(product.price),
+        quantity: 1
+      })
+    });
+    
+    const responseData = await res.json();
+    console.log('API Response:', responseData);
+
+    if(res.ok){
+      
+      let savedProduct = null;
+      
+      // Check different response patterns
+      if (responseData.data && responseData.data.products && responseData.data.products.length > 0) {
+        // Get the last added product (assuming it's the one we just added)
+        savedProduct = responseData.data.products[responseData.data.products.length - 1];
+      } else if (responseData.products && responseData.products.length > 0) {
+        savedProduct = responseData.products[responseData.products.length - 1];
+      } else if (responseData.data && responseData.data._id) {
+        // If the response is the updated customer document
+        savedProduct = responseData.data.products[responseData.data.products.length - 1];
+      }
+      
+      if (savedProduct && savedProduct._id) {
+        newRow.dataset.productId = savedProduct._id;
+        utils.showAlert(`Product "${savedProduct.name}" added to customer successfully`, 'success');
+      } else {
+        console.warn('Could not find product ID in response, using temporary ID');
+       
+        const tempId = 'temp_' + Date.now() + Math.random().toString(36).substr(2, 9);
+        newRow.dataset.productId = tempId;
+        utils.showAlert(`Product "${product.name}" added successfully`, 'success');
+      }
+      
+      await loadCustomerProducts(customerId);
+    } else {
+      utils.showAlert(responseData.message || 'Failed to save product to customer', 'error');
+    }
+  } catch (err) {
+    console.error('Error saving product to customer:', err);
+    utils.showAlert('Network error saving product', 'error');
+  } finally {
+    utils.hideLoading();
+  }
+}
+
+
+async function handleInvoiceSubmit(e) {
+  e.preventDefault();
+  const customerId = document.getElementById('selectCustomer').value;
+  const invoiceDate = document.getElementById('invoiceDate').value;
+
+  if (!customerId) {
+    utils.showAlert('Please select a customer', 'error');
+    return;
+  }
+
+  const items = [];
+  let hasErrors = false;
+
+  // Check each item row
+  document.querySelectorAll('.item-row').forEach((row, index) => {
+    const description = row.querySelector('.item-desc').value.trim();
+    const quantity = row.querySelector('.item-qty').value;
+    const rate = row.querySelector('.item-rate').value;
+    const gst = row.querySelector('.item-gst').value;
+
+    // Skip empty rows (where all fields are empty)
+    if (!description && !quantity && !rate && !gst) {
+      return;
+    }
+
+    // Validate required fields for non-empty rows
+    if (!description || !quantity || !rate) {
+      utils.showAlert(`Please fill all required fields in row ${index + 1} (Description, Qty, Rate)`, 'error');
+      hasErrors = true;
+      return;
+    }
+
+    // Add valid item to the array
+    items.push({
+      description,
+      quantity: parseFloat(quantity),
+      rate: parseFloat(rate),
+      gstRate: parseFloat(gst) || 0
+    });
+  });
+
+  if (hasErrors) return;
+
+  // Check if we have any items
+  if (items.length === 0) {
+    utils.showAlert('Please add at least one product item to the invoice', 'error');
+    return;
+  }
+
+  const invoiceData = { 
+    customerId, 
+    invoiceDate, 
+    items
+  };
+
+  try {
+    utils.showLoading();
+    const token = getToken();
+    
+    const response = await fetch(`${API_BASE}/invoices`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(invoiceData)
+    });
+    
+    if (response.ok) {
+      const invoice = await response.json();
+      utils.showAlert('Invoice saved successfully!', 'success');
+      
+      // Reset the form
+      document.getElementById('invoiceForm').reset();
+      
+      // Reset items container to one empty row
+      const itemsContainer = document.getElementById('itemsContainer');
+      itemsContainer.innerHTML = '';
+
+      // Set up event listeners for the new row
+      const firstRow = document.querySelector('.item-row');
+      if (firstRow) setupItemRowEventListeners(firstRow);
+      
+    } else {
+      const error = await response.json();
+      utils.showAlert(error.message || 'Failed to save invoice', 'error');
+    }
+  } catch (error) {
+    console.error('Network error saving invoice:', error);
+    utils.showAlert('Network error. Please try again.', 'error');
+  } finally {
+    utils.hideLoading();
+  }
+}
+
+
+
+function previewInvoice() {
+  const customerId = document.getElementById('selectCustomer').value;
+  const invoiceDate = document.getElementById('invoiceDate').value;
+
+  if (!customerId) {
+    utils.showAlert('Please select a customer first', 'error');
+    return;
+  }
+
+  const items = [];
+  let hasErrors = false;
+
+  document.querySelectorAll('.item-row').forEach((row, index) => {
+    const description = row.querySelector('.item-desc').value;
+    const quantity = row.querySelector('.item-qty').value;
+    const rate = row.querySelector('.item-rate').value;
+    const gst = row.querySelector('.item-gst').value;
+
+    if (!description || !quantity || !rate) {
+      utils.showAlert(`Please fill all fields in row ${index + 1}`, 'error');
+      hasErrors = true;
+      return;
+    }
+
+    items.push({ description, quantity: parseFloat(quantity), rate: parseFloat(rate), gstRate: parseFloat(gst) });
+  });
+
+  if (hasErrors) return;
+
+  const customer = customers.find(c => c._id === customerId);
+  if (!customer) {
+    utils.showAlert('Customer not found', 'error');
+    return;
+  }
+
+  const totals = calculateInvoiceTotals();
+  const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+  const formattedDate = new Date(invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  let productsHTML = '';
+  items.forEach((item, index) => {
+    const amountBeforeTax = item.quantity * item.rate;
+    const gstAmount = amountBeforeTax * (item.gstRate / 100);
+    const totalAmount = amountBeforeTax + gstAmount;
+
+    productsHTML += `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${item.quantity}</td>
+        <td>${utils.sanitizeInput(item.description)}</td>
+        <td>${utils.formatCurrency(item.rate)}</td>
+        <td>${item.gstRate}%</td>
+        <td>${utils.formatCurrency(gstAmount)}</td>
+        <td>${utils.formatCurrency(totalAmount)}</td>
+      </tr>
+    `;
+  });
+
+  // Update template fields
+  document.getElementById('inv-number').textContent = invoiceNumber;
+  document.getElementById('inv-date').textContent = formattedDate;
+  document.getElementById('inv-customer').textContent = customer.name;
+  document.getElementById('inv-gstin').textContent = customer.gstin || 'N/A';
+  document.getElementById('inv-products').innerHTML = productsHTML;
+  document.getElementById('inv-grand-total').textContent = utils.formatCurrency(totals.grandTotal);
+  document.getElementById('inv-amount-words').textContent = convertToWords(totals.grandTotal|| 0);
+
+  // Preview: clone template so we can print/download what user sees
+  const invoiceElement = document.getElementById('invoiceTemplate');
+  const previewContainer = document.getElementById('invoicePreview');
+  previewContainer.innerHTML = '';
+  const invoiceClone = invoiceElement.cloneNode(true);
+  invoiceClone.style.display = 'block';
+  previewContainer.appendChild(invoiceClone);
+
+  // Print button (operates on cloned content)
+  const printBtn = document.createElement('button');
+  printBtn.className = 'btn btn-primary no-print';
+  printBtn.innerHTML = '<i class="fas fa-print mr-2"></i> &nbsp; Print Invoice';
+  printBtn.addEventListener('click', () => printInvoice(invoiceClone));
+  previewContainer.appendChild(printBtn);
+
+}
+
+function printInvoice(invoiceElement) {
+  const originalContents = document.body.innerHTML;
+  const printContents = invoiceElement.innerHTML;
+  document.body.innerHTML = printContents;
+  window.print();
+  document.body.innerHTML = originalContents;
+  // Reinitialize event handlers after replacing body
+  initApp();
+}
+
+
+async function exportCustomerProductsExcel() {
+  try {
+    utils.showLoading();
+
+    // Fetch customers with products
+    const customersResponse = await fetch(`${API_BASE}/customers?populate=products`, {
+      headers: getAuthHeaders()
+    });
+    if (!customersResponse.ok) throw new Error('Failed to fetch customers');
+
+    const customersResult = await customersResponse.json();
+
+    let customers = [];
+    if (customersResult.data && Array.isArray(customersResult.data.customers)) {
+      customers = customersResult.data.customers;
+    } else if (Array.isArray(customersResult.data)) {
+      customers = customersResult.data;
+    } else if (Array.isArray(customersResult)) {
+      customers = customersResult;
+    }
+
+    if (!customers.length) {
+      utils.showAlert('No customers found in database', 'info');
+      return;
+    }
+
+    /* ---------------- Prepare Excel Data ---------------- */
+    const ws_data = [
+      ['CUSTOMER PRODUCTS REPORT'],
+      [`Generated on: ${new Date().toLocaleDateString()}`],
+      [''],
+      [
+        'Customer ID', 'Customer Name', 'Phone', 'GSTIN', 'Address',
+        'Product Name', 'Price', 'Quantity', 'Total Amount'
+      ]
+    ];
+
+    let customerCount = 0, productCount = 0, totalSalesAmount = 0;
+
+    for (const customer of customers) {
+      customerCount++;
+      let customerTotal = 0;
+      const products = customer.products || [];
+
+      if (products.length) {
+        for (const product of products) {
+          productCount++;
+          const productTotal = (product.price || 0) * (product.quantity || 1);
+          customerTotal += productTotal;
+          totalSalesAmount += productTotal;
+
+          ws_data.push([
+            customer.customerId || 'N/A',
+            customer.name || 'Unknown Customer',
+            customer.phone || '',
+            customer.gstin || '',
+            customer.address || '',
+            product.name || 'Unnamed Product',
+            product.price || 0,
+            product.quantity || 1,
+            productTotal.toFixed(2),
+            
+          ]);
+        }
+
+        // Customer subtotal row
+        ws_data.push(['', '', '', '', '', '', '', '',
+          `Customer Total: ${customerTotal.toFixed(2)}`, '', ''
+        ]);
+      } else {
+        ws_data.push([
+          customer.customerId || 'N/A',
+          customer.name || 'Unknown Customer',
+          customer.phone || '',
+          customer.gstin || '',
+          customer.address || '',
+          'No products', '', '', '', '', ''
+        ]);
+      }
+      ws_data.push(['']); // spacing row
+    }
+
+    // Summary
+    ws_data.push(['']);
+    ws_data.push(['REPORT SUMMARY']);
+    ws_data.push(['Total Customers', customerCount]);
+    ws_data.push(['Total Products', productCount]);
+    ws_data.push(['Total Sales Amount', `Rs.${totalSalesAmount.toFixed(2)}`]);
+    ws_data.push(['']);
+    ws_data.push(['GRAND TOTAL', `Rs.${totalSalesAmount.toFixed(2)}`]);
+
+    /* ---------------- Generate Workbook ---------------- */
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+    // Merge and style title row
+    ws['!merges'] = [
+      { s: { r:0, c:0 }, e: { r:0, c:10 } }, // Merge for title
+      { s: { r:1, c:0 }, e: { r:1, c:10 } }  // Merge for generated date
+    ];
+
+    // Column width for better view
+    ws['!cols'] = [
+      { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 },
+      { wch: 25 }, { wch: 20 }, { wch: 10 }, { wch: 10 },
+      { wch: 15 }, { wch: 20 }, { wch: 15 }
+    ];
+
+    // Center align everything
+    Object.keys(ws).forEach(cell => {
+      if (cell[0] === '!') return;
+      if (!ws[cell].s) ws[cell].s = {};
+      ws[cell].s.alignment = { vertical: "center", horizontal: "center" };
+    });
+
+    // Bold header + title
+    ['A1','A2','A4','B4','C4','D4','E4','F4','G4','H4','I4','J4','K4'].forEach(addr => {
+      if (ws[addr]) {
+        if (!ws[addr].s) ws[addr].s = {};
+        ws[addr].s.font = { bold: true };
+      }
+    });
+
+    // Workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Customer Products");
+
+    // Download
+    XLSX.writeFile(wb, `customer_products_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    utils.showAlert(`Exported ${customerCount} customers with ${productCount} products. Total Sales: ₹${totalSalesAmount.toFixed(2)}`, 'success');
+
+  } catch (error) {
+    console.error('Error exporting customer data:', error);
+    utils.showAlert(error.message || 'Failed to export customer data', 'error');
+  } finally {
+    utils.hideLoading();
+  }
+}
+
+
+// ---------- UTILITY FUNCTIONS ----------
+function setDefaultDates() {
+  const today = new Date().toISOString().split('T')[0];
+  const invoiceDateEl = document.getElementById('invoiceDate');
+  if (invoiceDateEl) invoiceDateEl.value = today;
+
+  const firstDay = new Date();
+  firstDay.setDate(1);
+  const lastDay = new Date();
+  lastDay.setMonth(lastDay.getMonth() + 1);
+  lastDay.setDate(0);
+  const fromEl = document.getElementById('fromDate');
+  const toEl = document.getElementById('toDate');
+  if (fromEl) fromEl.value = firstDay.toISOString().split('T')[0];
+  if (toEl) toEl.value = lastDay.toISOString().split('T')[0];
+}
+
+function convertToWords(amount) {
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+  const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  function convertLessThanThousand(num) {
+    if (num === 0) return '';
+    let result = '';
+    if (num >= 100) {
+      result += ones[Math.floor(num / 100)] + ' Hundred ';
+      num %= 100;
+    }
+    if (num >= 20) {
+      result += tens[Math.floor(num / 10)] + ' ';
+      num %= 10;
+    } else if (num >= 10) {
+      result += teens[num - 10] + ' ';
+      num = 0;
+    }
+    if (num > 0) result += ones[num] + ' ';
+    return result.trim();
+  }
+
+  if (!amount || isNaN(amount)) return 'Zero Rupees Only';
+
+  amount = Math.round(parseFloat(amount) * 100) / 100; // normalize
+  let rupees = Math.floor(amount);
+  let paise = Math.round((amount - rupees) * 100);
+
+  let words = '';
+  if (rupees >= 10000000) { words += convertLessThanThousand(Math.floor(rupees / 10000000)) + ' Crore '; rupees %= 10000000; }
+  if (rupees >= 100000) { words += convertLessThanThousand(Math.floor(rupees / 100000)) + ' Lakh '; rupees %= 100000; }
+  if (rupees >= 1000) { words += convertLessThanThousand(Math.floor(rupees / 1000)) + ' Thousand '; rupees %= 1000; }
+  if (rupees > 0) { words += convertLessThanThousand(rupees) + ' '; }
+
+  words = (words.trim() ? words.trim() + ' Rupees' : '');
+  if (paise > 0) {
+    words += (words ? ' and ' : '') + convertLessThanThousand(paise) + ' Paise';
+  }
+
+  return (words ? words + ' Only' : 'Zero Rupees Only');
+}
+const addProductBtn = document.getElementById('addProductBtn');
+if (addProductBtn) {
+    addProductBtn.addEventListener('click', () => addItemRow());
+}
+
+
+
+</script>
+</body>
+</html>
