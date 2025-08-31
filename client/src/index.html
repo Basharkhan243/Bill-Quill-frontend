@@ -1341,7 +1341,7 @@ function previewInvoice() {
   // Print button (operates on cloned content)
   const printBtn = document.createElement('button');
   printBtn.className = 'btn btn-primary no-print';
-  printBtn.innerHTML = '<i class="fas fa-print mr-2"></i> Print Invoice';
+  printBtn.innerHTML = '<i class="fas fa-print mr-2"></i> &nbsp; Print Invoice';
   printBtn.addEventListener('click', () => printInvoice(invoiceClone));
   previewContainer.appendChild(printBtn);
 
@@ -1568,5 +1568,6 @@ if (addProductBtn) {
 </body>
 
 </html>
+
 
 
